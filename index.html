@@ -60,8 +60,8 @@
     }
 
     @keyframes toastSlide {
-      0% { opacity: 0; transform: translate(-50%, 14px); }
-      100% { opacity: 1; transform: translate(-50%, 0); }
+      0% { opacity: 0; transform: translateY(14px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
 
     .animate-pop {
@@ -620,7 +620,7 @@
         item.hanamaru = !item.hanamaru;
         saveRecords();
         if (item.hanamaru) {
-          showToast("はなまるを付けたぞ。よくやったな。", { duration: 2400 });
+          showToast("はなまるを付けたぞ。よくやったな。", { duration: 3600 });
         }
         render();
       }
