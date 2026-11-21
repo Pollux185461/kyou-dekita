@@ -354,6 +354,7 @@
         { id: "work", label: "仕事・勉強", color: "#3C5E78", bg: "#E9F0F6", text: "#284257" },
         { id: "rest", label: "こころ・休息", color: "#6D5B7B", bg: "#F0EDF4", text: "#4C3E57" },
         { id: "fun", label: "たのしみ", color: "#B8914B", bg: "#F7F1E4", text: "#7D602B" },
+        { id: "social", label: "人付き合い", color: "#A85D68", bg: "#F8EDED", text: "#713C44" },
         { id: "other", label: "その他", color: "#6B7C82", bg: "#EDF1F2", text: "#465459" }
       ];
 
@@ -364,7 +365,7 @@
         { text: "顔を洗った", category: "care" },
         { text: "ちょっと休んだ", category: "rest" },
         { text: "深呼吸した", category: "rest" },
-        { text: "連絡を返した", category: "work" },
+        { text: "連絡を返した", category: "social" },
         { text: "少し片付けた", category: "care" },
         { text: "好きなことを楽しんだ", category: "fun" }
       ];
@@ -457,6 +458,7 @@
         records: loadRecords(),
         quickChips: loadQuickChips(),
         isEditingChips: false,
+        editingItemId: null,
         lastDeleted: null,
         toastTimer: null
       };
@@ -630,6 +632,146 @@
         item.level = (item.level % 3) + 1;
         saveRecords();
         render();
+      }
+
+      function startEdit(itemId) {
+        state.editingItemId = itemId;
+        render();
+      }
+
+      function cancelEdit() {
+        state.editingItemId = null;
+        render();
+      }
+
+      function saveEdit(dateKey, itemId, text, categoryId, level) {
+        const list = state.records[dateKey];
+        if (!Array.isArray(list)) return;
+        const item = list.find((i) => i.id === itemId);
+        if (!item) return;
+        const clean = text.trim();
+        if (!clean) return;
+        item.text = clean;
+        item.category = categoryId;
+        item.level = level;
+        state.editingItemId = null;
+        saveRecords();
+        showToast("記録を直しておいた", { duration: 2400 });
+        render();
+      }
+
+      function buildEditForm(item) {
+        let editCategory = CATEGORIES.some((c) => c.id === item.category) ? item.category : "other";
+        let editLevel = item.level || 1;
+
+        const wrap = document.createElement("div");
+        wrap.className = "w-full space-y-3";
+
+        const textarea = document.createElement("textarea");
+        textarea.value = item.text;
+        textarea.maxLength = 120;
+        textarea.rows = 2;
+        textarea.setAttribute("aria-label", "記録の内容");
+        textarea.className = "w-full rounded-xl border border-[#D3DFE3] bg-[#F9FBFC] px-3.5 py-2.5 text-sm text-[#1B292D] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#185461]/20 focus:border-[#185461] transition resize-none";
+        wrap.appendChild(textarea);
+
+        const row = document.createElement("div");
+        row.className = "flex flex-wrap items-center justify-between gap-2.5";
+
+        const chips = document.createElement("div");
+        chips.className = "flex flex-wrap gap-1.5";
+        chips.setAttribute("role", "group");
+        chips.setAttribute("aria-label", "カテゴリを直す");
+
+        function paintChips() {
+          chips.innerHTML = "";
+          CATEGORIES.forEach((cat) => {
+            const active = editCategory === cat.id;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = cat.label;
+            btn.className = "px-2.5 py-1 rounded-full text-xs font-medium transition border";
+            if (active) {
+              btn.style.backgroundColor = cat.bg;
+              btn.style.color = cat.text;
+              btn.style.borderColor = cat.color;
+            } else {
+              btn.style.backgroundColor = "#FFFFFF";
+              btn.style.color = "#65787E";
+              btn.style.borderColor = "#D8E2E5";
+            }
+            btn.addEventListener("click", () => {
+              editCategory = cat.id;
+              paintChips();
+            });
+            chips.appendChild(btn);
+          });
+        }
+        paintChips();
+        row.appendChild(chips);
+
+        const levelBox = document.createElement("div");
+        levelBox.className = "flex items-center gap-1 bg-[#F4F8F9] border border-[#DCE6E9] rounded-xl px-2.5 py-1";
+        const levelLabel = document.createElement("span");
+        levelLabel.className = "text-[11px] tracking-[0.06em] text-[#65787E] mr-0.5";
+        levelLabel.textContent = "がんばり度";
+        levelBox.appendChild(levelLabel);
+
+        const starBtns = [];
+        function paintStars() {
+          starBtns.forEach((btn, idx) => {
+            btn.style.color = idx + 1 <= editLevel ? "#C4A05A" : "#CFDADD";
+          });
+        }
+        for (let lv = 1; lv <= 3; lv++) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = "★";
+          btn.className = "text-base leading-none p-0.5 transition hover:scale-110";
+          btn.setAttribute("aria-label", `がんばり度 ${lv}`);
+          btn.addEventListener("click", () => {
+            editLevel = lv;
+            paintStars();
+          });
+          starBtns.push(btn);
+          levelBox.appendChild(btn);
+        }
+        paintStars();
+        row.appendChild(levelBox);
+        wrap.appendChild(row);
+
+        const btnRow = document.createElement("div");
+        btnRow.className = "flex justify-end gap-2";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.textContent = "やめる";
+        cancelBtn.className = "px-4 py-2 rounded-xl border border-[#D8E2E5] bg-white text-sm text-[#65787E] hover:bg-[#F1F5F6] active:scale-95 transition";
+        cancelBtn.addEventListener("click", () => cancelEdit());
+
+        const saveBtn = document.createElement("button");
+        saveBtn.type = "button";
+        saveBtn.textContent = "保存する";
+        saveBtn.className = "px-4 py-2 rounded-xl bg-[#185461] hover:bg-[#103D47] active:scale-95 text-white text-sm font-medium shadow-sm transition";
+        saveBtn.addEventListener("click", () => {
+          if (!textarea.value.trim()) {
+            textarea.focus();
+            return;
+          }
+          saveEdit(state.selectedDate, item.id, textarea.value, editCategory, editLevel);
+        });
+
+        btnRow.appendChild(cancelBtn);
+        btnRow.appendChild(saveBtn);
+        wrap.appendChild(btnRow);
+
+        setTimeout(() => {
+          textarea.focus();
+          const len = textarea.value.length;
+          textarea.setSelectionRange(len, len);
+        }, 0);
+
+        return wrap;
       }
 
       function shiftSelectedDate(deltaDays) {
@@ -864,6 +1006,12 @@
               item.hanamaru ? "hanamaru-active" : "surface-card"
             }`;
 
+            if (state.editingItemId === item.id) {
+              li.appendChild(buildEditForm(item));
+              doneList.appendChild(li);
+              return;
+            }
+
             const left = document.createElement("div");
             left.className = "min-w-0 flex-1";
 
@@ -919,6 +1067,14 @@
             hanamaruBtn.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="${item.hanamaru ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
             hanamaruBtn.addEventListener("click", () => toggleHanamaru(state.selectedDate, item.id));
 
+            const editBtn = document.createElement("button");
+            editBtn.type = "button";
+            editBtn.title = "編集";
+            editBtn.setAttribute("aria-label", "編集");
+            editBtn.className = "w-8 h-8 rounded-xl flex items-center justify-center text-[#A7B7BC] hover:bg-[#F1F5F6] hover:text-[#185461] transition";
+            editBtn.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`;
+            editBtn.addEventListener("click", () => startEdit(item.id));
+
             const delBtn = document.createElement("button");
             delBtn.type = "button";
             delBtn.title = "削除";
@@ -928,6 +1084,7 @@
             delBtn.addEventListener("click", () => deleteItem(state.selectedDate, item.id));
 
             actions.appendChild(hanamaruBtn);
+            actions.appendChild(editBtn);
             actions.appendChild(delBtn);
 
             li.appendChild(left);
