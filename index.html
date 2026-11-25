@@ -1229,7 +1229,8 @@
 
             const stars = document.createElement("span");
             stars.className = "ml-auto text-[11px] tracking-[0.15em] text-[#C4A05A]";
-            stars.textContent = levelStars(item.level);
+            const lv = Math.max(1, Math.min(3, item.level || 1));
+            stars.textContent = "★".repeat(lv) + "☆".repeat(3 - lv);
 
             metaRow.appendChild(dateSpan);
             metaRow.appendChild(badge);
