@@ -321,6 +321,14 @@
         <div id="category-bars" class="space-y-3"></div>
       </div>
 
+      <!-- Hanamaru Collection -->
+      <div class="surface-card rounded-2xl p-4 sm:p-5">
+        <h2 class="eyebrow-line text-xs font-medium tracking-[0.2em] text-[#65787E] mb-4">はなまるの記録</h2>
+        <div id="hanamaru-list" class="space-y-2.5"></div>
+        <p id="hanamaru-empty" class="hidden text-xs text-[#7D9096] leading-relaxed">まだ、はなまるはない。記録のハートを押すと、ここに集まる。</p>
+        <p id="hanamaru-note" class="hidden text-[11px] text-[#7D9096] mt-3 text-right">タップするとその日の記録を開けます</p>
+      </div>
+
       <!-- Backup & Export -->
       <div class="surface-card rounded-2xl p-4 sm:p-5">
         <h2 class="eyebrow-line text-xs font-medium tracking-[0.2em] text-[#65787E] mb-2">データのバックアップ</h2>
@@ -501,6 +509,9 @@
       const btnCalPrev = document.getElementById("btn-cal-prev");
       const btnCalNext = document.getElementById("btn-cal-next");
       const categoryBars = document.getElementById("category-bars");
+      const hanamaruList = document.getElementById("hanamaru-list");
+      const hanamaruEmpty = document.getElementById("hanamaru-empty");
+      const hanamaruNote = document.getElementById("hanamaru-note");
       const btnExportJson = document.getElementById("btn-export-json");
       const inputImportJson = document.getElementById("input-import-json");
       const btnCopyAll = document.getElementById("btn-copy-all");
@@ -1180,6 +1191,70 @@
           row.appendChild(track);
           categoryBars.appendChild(row);
         });
+
+        renderHanamaruList();
+      }
+
+      function renderHanamaruList() {
+        hanamaruList.innerHTML = "";
+        const keys = Object.keys(state.records).sort().reverse();
+        let count = 0;
+
+        keys.forEach((key) => {
+          const items = Array.isArray(state.records[key]) ? state.records[key] : [];
+          items.filter((item) => item.hanamaru).forEach((item) => {
+            count += 1;
+            const cat = getCategory(item.category);
+
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "hanamaru-active w-full text-left rounded-2xl border p-3.5 block transition hover:opacity-90";
+
+            const metaRow = document.createElement("div");
+            metaRow.className = "flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5";
+
+            const dateSpan = document.createElement("span");
+            dateSpan.className = "text-[11px] font-medium text-[#7A5E2E]";
+            dateSpan.textContent = formatJapaneseDate(key);
+
+            const badge = document.createElement("span");
+            badge.className = "text-[10px] px-2 py-0.5 rounded-full font-medium";
+            badge.style.backgroundColor = cat.bg;
+            badge.style.color = cat.text;
+            badge.textContent = cat.label;
+
+            const timeSpan = document.createElement("span");
+            timeSpan.className = "text-[11px] text-[#8A9BA0]";
+            timeSpan.textContent = item.time;
+
+            const stars = document.createElement("span");
+            stars.className = "ml-auto text-[11px] tracking-[0.15em] text-[#C4A05A]";
+            stars.textContent = levelStars(item.level);
+
+            metaRow.appendChild(dateSpan);
+            metaRow.appendChild(badge);
+            metaRow.appendChild(timeSpan);
+            metaRow.appendChild(stars);
+
+            const textP = document.createElement("p");
+            textP.className = "text-sm text-[#1B292D] leading-relaxed font-medium";
+            textP.textContent = item.text;
+
+            row.appendChild(metaRow);
+            row.appendChild(textP);
+            row.addEventListener("click", () => {
+              state.selectedDate = key;
+              state.filterCategory = "all";
+              state.editingItemId = null;
+              switchTab("today");
+            });
+
+            hanamaruList.appendChild(row);
+          });
+        });
+
+        hanamaruEmpty.classList.toggle("hidden", count > 0);
+        hanamaruNote.classList.toggle("hidden", count === 0);
       }
 
       function switchTab(tab) {
